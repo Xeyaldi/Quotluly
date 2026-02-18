@@ -1,3 +1,2 @@
-aiogram==2.25.1
-aiohttp
-requests
+aiogram==3.0.0b7
+pillow
