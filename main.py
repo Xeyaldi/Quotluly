@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from PIL import Image, ImageDraw, ImageFont
 
 # --- AYARLAR ---
-API_TOKEN = 'TOKENINI_BURA_YAZ'
+API_TOKEN = '8499613617:AAG4wpoQPWr05VevzQNYae6zXj1OLPh5Atk'
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
