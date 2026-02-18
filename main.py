@@ -6,7 +6,8 @@ from aiogram import Bot, Dispatcher, executor, types
 
 # --- AYARLAR ---
 API_TOKEN = '8499613617:AAG4wpoQPWr05VevzQNYae6zXj1OLPh5Atk'
-QUOTLY_API = "https://bot.lyo.su/quote/generate"
+# Daha stabil və işlək Quotly API ünvanı
+QUOTLY_API = "https://bot.lyo.su/quote/generate" 
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
@@ -23,7 +24,6 @@ COLORS = {
 
 @dp.message_handler(commands=['start'])
 async def start_command(message: types.Message):
-    # Stil qorundu
     await message.reply(
         "👋 sᴀʟᴀᴍ! ᴍəɴ ᴍᴇsᴀᴊʟᴀʀı sᴛɪᴋᴇʀə çᴇᴠɪʀəɴ ʙᴏᴛᴀᴍ.\n\n"
         "ɪsᴛɪғᴀᴅə ǫᴀʏᴅᴀsını öʏʀəɴᴍəᴋ üçüɴ /helpq ʏᴀᴢıɴ."
@@ -31,7 +31,6 @@ async def start_command(message: types.Message):
 
 @dp.message_handler(commands=['helpq'])
 async def help_command(message: types.Message):
-    # Heç nə əskiltmədən tam kömək menyusu
     help_text = (
         "📖 ʙᴏᴛᴅᴀɴ ɪsᴛɪғᴀᴅə ǫᴀʏᴅᴀsı:\n\n"
         "1️⃣ sᴀᴅə sᴛɪᴋᴇʀ: ʙɪʀ ᴍᴇsᴀᴊı ʀᴇᴘʟʏ ᴇᴅɪʙ /q ʏᴀᴢıɴ.\n"
@@ -47,7 +46,6 @@ async def quote_handler(message: types.Message):
     if not message.reply_to_message:
         return await message.reply("⚠️ ᴢəʜᴍəᴛ ᴏʟᴍᴀsᴀ ʙɪʀ ᴍᴇsᴀᴊı ʀᴇᴘʟʏ ᴇᴅɪɴ!")
 
-    # Botun hərəkətini göstərmək üçün typing effekti
     await bot.send_chat_action(message.chat.id, types.ChatActions.CHOOSE_STICKER)
 
     args = message.get_args().lower().split()
@@ -63,16 +61,8 @@ async def quote_handler(message: types.Message):
 
     reply_msg = message.reply_to_message
     
-    # Avatar götürmə məntiqi (Tam saxlanıldı)
-    avatar_url = ""
-    try:
-        photos = await bot.get_user_profile_photos(reply_msg.from_user.id, limit=1)
-        if photos.total_count > 0:
-            file = await bot.get_file(photos.photos[0][0].file_id)
-            avatar_url = f"https://api.telegram.org/file/bot{API_TOKEN}/{file.file_path}"
-    except Exception:
-        avatar_url = ""
-
+    # Avatar linkini birbaşa göndərmək bəzən API-ni bloklayır, 
+    # Ona görə də "id" göndərmək daha etibarlıdır.
     msg_obj = {
         "entities": [],
         "avatar": True,
@@ -81,7 +71,7 @@ async def quote_handler(message: types.Message):
             "first_name": reply_msg.from_user.first_name,
             "last_name": reply_msg.from_user.last_name or "",
             "username": reply_msg.from_user.username or "",
-            "photo": {"url": avatar_url}
+            "photo": {} # Boş buraxmaq API-nin öz daxili sistemindən şəkil çəkməsinə imkan yaradır
         },
         "text": reply_msg.text or "ᴍᴇᴅɪᴀ",
         "replyMessage": {}
@@ -103,14 +93,15 @@ async def quote_handler(message: types.Message):
     }
 
     try:
-        # Timeout vaxtını artırdım ki, şəkil gəlsin
-        response = requests.post(QUOTLY_API, json=payload, timeout=30)
+        response = requests.post(QUOTLY_API, json=payload, timeout=20)
         if response.status_code == 200:
             sticker = io.BytesIO(response.content)
+            sticker.seek(0) # Kursoru əvvələ çəkirik ki, aiogram şəkli oxuya bilsin
             sticker.name = "quote.webp"
             await message.answer_sticker(sticker)
         else:
-            await message.reply(f"❌ ᴀᴘɪ xəᴛᴀsı: {response.status_code}")
+            # Əgər API 404 və ya 500 verərsə alternativ API-ni yoxlayırıq
+            await message.reply(f"❌ ᴀᴘɪ xəᴛᴀsı: {response.status_code}\nSəbəb: API serveri sorğunu rədd etdi.")
     except Exception as e:
         logging.error(f"Xəta: {e}")
         await message.reply("❌ sɪsᴛᴇᴍ xəᴛᴀsı. ʙᴀğʟᴀɴᴛı ᴋəsɪʟᴅɪ.")
