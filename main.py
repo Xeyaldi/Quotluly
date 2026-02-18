@@ -5,7 +5,7 @@ import random
 from aiogram import Bot, Dispatcher, executor, types
 
 # --- AYARLAR ---
-API_TOKEN = 'BURA_ÖZ_TOKENİNİ_YAZ'
+API_TOKEN = '8499613617:AAG4wpoQPWr05VevzQNYae6zXj1OLPh5Atk'
 QUOTLY_API = "https://bot.lyo.su/quote/generate"
 
 logging.basicConfig(level=logging.INFO)
