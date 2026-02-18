@@ -89,9 +89,16 @@ async def quote_handler(message: types.Message):
         "messages": [msg_obj]
     }
 
+    # API-ni aldatmaq üçün başlıqlar (Headers)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "X-Forwarded-For": f"{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}"
+    }
+
     # Asinxron aiohttp istifadəsi
     try:
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers=headers) as session:
             async with session.post(QUOTLY_API, json=payload, timeout=25) as response:
                 if response.status == 200:
                     content = await response.read()
@@ -102,8 +109,10 @@ async def quote_handler(message: types.Message):
                         await message.answer_sticker(sticker)
                     else:
                         await message.reply("❌ API cavabı boşdur.")
+                elif response.status == 403:
+                     await message.reply("🚫 API Heroku IP-sini tamamilə bloklayıb. Headers kömək etmədi.")
                 else:
-                    await message.reply(f"❌ ᴀᴘɪ xəᴛᴀsı: {response.status}\nHeroku IP-si API tərəfindən rədd edildi.")
+                    await message.reply(f"❌ ᴀᴘɪ xəᴛᴀsı: {response.status}")
     except Exception as e:
         logging.error(f"Xəta: {e}")
         await message.reply("❌ sɪsᴛᴇᴍ xəᴛᴀsı. ʙᴀğʟᴀɴᴛı ᴋəsɪʟᴅɪ.")
