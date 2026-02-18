@@ -1,19 +1,18 @@
 import logging
-import requests
+import aiohttp # Asinxron sorğular üçün
 import io
 import random
 from aiogram import Bot, Dispatcher, executor, types
 
 # --- AYARLAR ---
 API_TOKEN = '8499613617:AAG4wpoQPWr05VevzQNYae6zXj1OLPh5Atk'
-# Daha stabil və işlək Quotly API ünvanı
 QUOTLY_API = "https://bot.lyo.su/quote/generate" 
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-# Bütün rənglər (Geniş siyahı)
+# Bütün rənglər
 COLORS = {
     "mavi": "#0000FF", "qırmızı": "#FF0000", "yaşıl": "#00FF00",
     "sarı": "#FFFF00", "qara": "#000000", "ağ": "#FFFFFF",
@@ -61,8 +60,6 @@ async def quote_handler(message: types.Message):
 
     reply_msg = message.reply_to_message
     
-    # Avatar linkini birbaşa göndərmək bəzən API-ni bloklayır, 
-    # Ona görə də "id" göndərmək daha etibarlıdır.
     msg_obj = {
         "entities": [],
         "avatar": True,
@@ -71,7 +68,7 @@ async def quote_handler(message: types.Message):
             "first_name": reply_msg.from_user.first_name,
             "last_name": reply_msg.from_user.last_name or "",
             "username": reply_msg.from_user.username or "",
-            "photo": {} # Boş buraxmaq API-nin öz daxili sistemindən şəkil çəkməsinə imkan yaradır
+            "photo": {} 
         },
         "text": reply_msg.text or "ᴍᴇᴅɪᴀ",
         "replyMessage": {}
@@ -92,16 +89,21 @@ async def quote_handler(message: types.Message):
         "messages": [msg_obj]
     }
 
+    # Asinxron aiohttp istifadəsi
     try:
-        response = requests.post(QUOTLY_API, json=payload, timeout=20)
-        if response.status_code == 200:
-            sticker = io.BytesIO(response.content)
-            sticker.seek(0) # Kursoru əvvələ çəkirik ki, aiogram şəkli oxuya bilsin
-            sticker.name = "quote.webp"
-            await message.answer_sticker(sticker)
-        else:
-            # Əgər API 404 və ya 500 verərsə alternativ API-ni yoxlayırıq
-            await message.reply(f"❌ ᴀᴘɪ xəᴛᴀsı: {response.status_code}\nSəbəb: API serveri sorğunu rədd etdi.")
+        async with aiohttp.ClientSession() as session:
+            async with session.post(QUOTLY_API, json=payload, timeout=25) as response:
+                if response.status == 200:
+                    content = await response.read()
+                    if content:
+                        sticker = io.BytesIO(content)
+                        sticker.seek(0)
+                        sticker.name = "quote.webp"
+                        await message.answer_sticker(sticker)
+                    else:
+                        await message.reply("❌ API cavabı boşdur.")
+                else:
+                    await message.reply(f"❌ ᴀᴘɪ xəᴛᴀsı: {response.status}\nHeroku IP-si API tərəfindən rədd edildi.")
     except Exception as e:
         logging.error(f"Xəta: {e}")
         await message.reply("❌ sɪsᴛᴇᴍ xəᴛᴀsı. ʙᴀğʟᴀɴᴛı ᴋəsɪʟᴅɪ.")
