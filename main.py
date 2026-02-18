@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-# Geniş rəng siyahısı
+# Rəng bazası
 COLORS = {
     "mavi": "#0000FF", "qırmızı": "#FF0000", "yaşıl": "#00FF00",
     "sarı": "#FFFF00", "qara": "#000000", "ağ": "#FFFFFF",
@@ -47,9 +47,8 @@ async def quote_handler(message: types.Message):
 
     args = message.get_args().lower().split()
     include_reply = "r" in args
+    bg_color = "#1b1429"
     
-    # Rəng təyini (HEX kodları çıxarıldı, ancaq sözlər və qarışıq qaldı)
-    bg_color = "#1b1429" 
     if "qarışıq" in args:
         bg_color = "#%06x" % random.randint(0, 0xFFFFFF)
     else:
@@ -59,17 +58,15 @@ async def quote_handler(message: types.Message):
 
     reply_msg = message.reply_to_message
     
-    # Profil şəkli götürmə
     avatar_url = ""
     try:
         photos = await bot.get_user_profile_photos(reply_msg.from_user.id, limit=1)
         if photos.total_count > 0:
             file = await bot.get_file(photos.photos[0][0].file_id)
             avatar_url = f"https://api.telegram.org/file/bot{API_TOKEN}/{file.file_path}"
-    except Exception:
-        avatar_url = ""
+    except:
+        pass
 
-    # Mesaj strukturu
     msg_obj = {
         "entities": [],
         "avatar": True,
@@ -84,7 +81,6 @@ async def quote_handler(message: types.Message):
         "replyMessage": {}
     }
 
-    # Əgər reply ilə bir yerdədirsə (üst-üstə)
     if include_reply and reply_msg.reply_to_message:
         upper_msg = reply_msg.reply_to_message
         msg_obj["replyMessage"] = {
@@ -101,16 +97,13 @@ async def quote_handler(message: types.Message):
     }
 
     try:
-        response = requests.post(QUOTLY_API, json=payload, timeout=10)
+        response = requests.post(QUOTLY_API, json=payload, timeout=30)
         if response.status_code == 200:
             sticker = io.BytesIO(response.content)
             sticker.name = "quote.webp"
             await message.answer_sticker(sticker)
-        else:
-            await message.reply("❌ ᴀᴘɪ xəᴛᴀsı. ʙɪʀ ᴀᴢ sᴏɴʀᴀ ʏᴏxʟᴀʏıɴ.")
-    except Exception as e:
-        logging.error(f"Xəta: {e}")
-        await message.reply("❌ sɪsᴛᴇᴍ xəᴛᴀsı.")
+    except:
+        pass
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
